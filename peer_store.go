@@ -96,8 +96,8 @@ func (p *peerContactsSet) dropDead() string {
 }
 
 func (p *peerContactsSet) kill(peerContact string) {
-	if ok := p.set[peerContact]; ok {
-		p.set[peerContact] = false
+	if ok := p.set[peerContact]; ok {					// 如果在peerContactsSet中找到了peerContact
+		p.set[peerContact] = false						// 将其Value修改成false，在后面进行drop的时候会将其清理出去
 	}
 }
 
@@ -133,12 +133,13 @@ func newPeerStore(maxInfoHashes,maxInfoHashPeers int) *peerStore {
 	}
 }
 
+// 从peerStore中，从缓存中把Key为infohash的Value查找出来
 func (h *peerStore) get(ih InfoHash) *peerContactsSet {
-	c, ok := h.infoHashPeers.Get(string(ih))
+	c, ok := h.infoHashPeers.Get(string(ih)) 	// 从缓存中查找
 	if !ok {
 		return nil
 	}
-	contacts := c.(*peerContactsSet)
+	contacts := c.(*peerContactsSet) 			// 断言，判断c是否为*peerContactsSet  指针类型
 	return contacts
 }
 
@@ -174,18 +175,18 @@ func (h *peerStore) addContact(ih InfoHash, peerContact string) bool {
 	p, ok := h.infoHashPeers.Get(string(ih))  // 从LRU缓存中获取infohash的peer节点集合
 	if ok {
 		var okType bool
-		peers, okType = p.(*peerContactsSet)
+		peers, okType = p.(*peerContactsSet)				// 断言
 		if okType && peers != nil {
-			if peers.Size() >= h.maxInfoHashPeers {    		// 如果缓存的peer节点数大于已保存的节点数
-				if _, ok := peers.set[peerContact]; ok { 	// 将peerContact添加到peers
+			if peers.Size() >= h.maxInfoHashPeers {    		// 如果缓存的peer节点数大于最大的保存数目
+				if _, ok := peers.set[peerContact]; ok { 	// 判断peerContact是否已经在peerContactsSet中，如果在，返回false
 					return false
 				}
-				if peers.drop("") == "" {
+				if peers.drop("") == "" {		// 如果没有死元素，返回false
 					return false
 				}
 			}
-			h.infoHashPeers.Add(string(ih), peers)			// 保存到peerStore中
-			return peers.put(peerContact)
+			h.infoHashPeers.Add(string(ih), peers)			// 将 Key=infohash,Value=peerContactsSet的map保存到peerStore中
+			return peers.put(peerContact)					// 将peerContact保存到peerContactsSet中
 		}
 		// Bogus peer contacts, reset them.
 	}
